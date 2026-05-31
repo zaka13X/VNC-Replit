@@ -1,26 +1,27 @@
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV DISPLAY=:1
-ENV RESOLUTION=1024x768x24
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    tigervnc-standalone-server \
-    tigervnc-tools \
-    fluxbox \
-    novnc \
-    websockify \
-    firefox-esr \
-    ca-certificates \
-    procps \
-    && apt-get clean \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       xfce4 \
+       tigervnc-standalone-server \
+       tigervnc-common \
+       tigervnc-tools \
+       novnc \
+       websockify \
+       firefox-esr \
+       dbus-x11 \
+       x11-xserver-utils \
+       docker.io \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p ~/.vnc && \
-    echo "novnc" | vncpasswd -f > ~/.vnc/passwd && \
-    chmod 600 ~/.vnc/passwd
+RUN mkdir -p /root/.vnc \
+    && printf '%s\n' '#!/bin/sh' 'unset SESSION_MANAGER' 'unset DBUS_SESSION_BUS_ADDRESS' 'exec startxfce4' > /root/.vnc/xstartup \
+    && chmod +x /root/.vnc/xstartup
 
-EXPOSE 8080
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-CMD vncserver $DISPLAY -geometry ${RESOLUTION%x*} -depth ${RESOLUTION##*x} -localhost no -rfbauth ~/.vnc/passwd && \
-    /usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen 8080
+EXPOSE 6080 5901
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
